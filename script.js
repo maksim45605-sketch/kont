@@ -38,12 +38,105 @@ class KnotDatabase {
             lastSeen: new Date().toISOString()
         };
         
+        // Создаем тестовых пользователей
+        database.users.alice = {
+            id: 'alice',
+            username: 'alice',
+            firstname: 'Алиса',
+            lastname: 'Петрова',
+            avatar: '',
+            bio: 'Люблю технологии и общение',
+            birthdate: '1995-05-15',
+            premium: true,
+            verified: false,
+            stars: 500,
+            createdAt: new Date().toISOString(),
+            lastSeen: new Date().toISOString()
+        };
+        
+        database.users.bob = {
+            id: 'bob',
+            username: 'bob',
+            firstname: 'Боб',
+            lastname: 'Иванов',
+            avatar: '',
+            bio: 'Разработчик и геймер',
+            birthdate: '1992-08-20',
+            premium: false,
+            verified: false,
+            stars: 150,
+            createdAt: new Date().toISOString(),
+            lastSeen: new Date().toISOString()
+        };
+        
         // Стандартные подарки
         database.gifts = {
             heart: { id: 'heart', name: 'Сердце', emoji: '💖', price: 10 },
             flower: { id: 'flower', name: 'Цветы', emoji: '💐', price: 15 },
             bear: { id: 'bear', name: 'Мишка', emoji: '🧸', price: 5 },
-            rocket: { id: 'rocket', name: 'Ракета', emoji: '🚀', price: 50 }
+            rocket: { id: 'rocket', name: 'Ракета', emoji: '🚀', price: 50 },
+            diamond: { id: 'diamond', name: 'Алмаз', emoji: '💎', price: 100 },
+            ring: { id: 'ring', name: 'Кольцо', emoji: '💍', price: 500 },
+            lego: { id: 'lego', name: 'Лего', emoji: '🧱', price: 30 }
+        };
+        
+        // Пример чатов
+        database.chats.contact_zant_alice = {
+            id: 'contact_zant_alice',
+            type: 'contact',
+            user1: 'zant',
+            user2: 'alice',
+            createdAt: new Date().toISOString(),
+            lastMessage: 'Привет! Как дела?',
+            lastMessageTime: new Date().toISOString()
+        };
+        
+        database.messages.contact_zant_alice = [
+            {
+                id: 1,
+                sender: 'zant',
+                text: 'Привет! Добро пожаловать в Knot!',
+                timestamp: new Date(Date.now() - 3600000).toISOString(),
+                reactions: {}
+            },
+            {
+                id: 2,
+                sender: 'alice',
+                text: 'Спасибо! Мессенджер выглядит круто!',
+                timestamp: new Date(Date.now() - 3500000).toISOString(),
+                reactions: {}
+            }
+        ];
+        
+        // Пример группы
+        database.chats.group_friends = {
+            id: 'group_friends',
+            type: 'group',
+            name: 'Друзья',
+            description: 'Группа для общения с друзьями',
+            owner: 'zant',
+            members: ['zant', 'alice', 'bob'],
+            everyoneCanWrite: true,
+            createdAt: new Date().toISOString(),
+            lastMessage: 'Всем привет!',
+            lastMessageTime: new Date().toISOString()
+        };
+        
+        // Пример канала
+        database.chats.channel_news = {
+            id: 'channel_news',
+            type: 'channel',
+            name: 'Новости Knot',
+            username: 'knot_news',
+            description: 'Официальный канал новостей',
+            owner: 'zant',
+            subscribers: ['zant', 'alice', 'bob'],
+            level: 5,
+            votes: 120,
+            verified: true,
+            createdAt: new Date().toISOString(),
+            lastMessage: 'Вышло обновление 2.0!',
+            lastMessageTime: new Date().toISOString()
         };
         
         localStorage.setItem('knot_db_v3', JSON.stringify(database));
@@ -121,6 +214,7 @@ let db = new KnotDatabase();
 let currentUser = null;
 let currentChatId = null;
 let selectedGift = null;
+let selectedPhoto = null;
 
 // ============ ЭКРАН ВХОДА ============
 function switchLoginTab(tab) {
@@ -153,7 +247,6 @@ function register() {
     const firstname = document.getElementById('register-firstname').value.trim();
     const lastname = document.getElementById('register-lastname').value.trim();
     const username = document.getElementById('register-username').value.toLowerCase().replace('@', '');
-    const birthdate = document.getElementById('register-birthdate').value;
     const avatar = document.getElementById('register-avatar').value.trim();
     
     if (!firstname || !username) {
@@ -173,7 +266,6 @@ function register() {
         lastname: lastname,
         avatar: avatar,
         bio: '',
-        birthdate: birthdate,
         premium: false,
         verified: false,
         stars: 100,
@@ -215,10 +307,6 @@ function startApp() {
     updateUserUI();
     loadChats();
     loadGifts();
-    
-    if (currentUser.id === 'zant') {
-        document.getElementById('zant-panel').style.display = 'block';
-    }
 }
 
 function updateUserUI() {
@@ -291,8 +379,9 @@ function loadChats() {
             if (chat.type === 'contact' && 
                 (chat.user1 === currentUser.id || chat.user2 === currentUser.id)) {
                 addChatToList(chat);
-            } else if ((chat.type === 'group' || chat.type === 'channel') && 
-                       (chat.members?.includes(currentUser.id) || chat.subscribers?.includes(currentUser.id))) {
+            } else if (chat.type === 'group' && chat.members?.includes(currentUser.id)) {
+                addChatToList(chat);
+            } else if (chat.type === 'channel' && chat.subscribers?.includes(currentUser.id)) {
                 addChatToList(chat);
             }
         });
@@ -300,6 +389,18 @@ function loadChats() {
         Object.values(db.users).forEach(user => {
             if (user.id !== currentUser.id) {
                 addContactToList(user);
+            }
+        });
+    } else if (tab === 'группы') {
+        Object.values(db.chats).forEach(chat => {
+            if (chat.type === 'group' && chat.members?.includes(currentUser.id)) {
+                addChatToList(chat);
+            }
+        });
+    } else if (tab === 'каналы') {
+        Object.values(db.chats).forEach(chat => {
+            if (chat.type === 'channel' && chat.subscribers?.includes(currentUser.id)) {
+                addChatToList(chat);
             }
         });
     }
@@ -312,31 +413,43 @@ function addChatToList(chat) {
     div.onclick = () => openChat(chat.id);
     
     let name = chat.name || 'Чат';
-    let avatar = '💬';
-    let status = '';
+    let meta = '';
+    let avatarText = '💬';
+    let avatarStyle = '';
     
     if (chat.type === 'contact') {
         const otherUser = chat.user1 === currentUser.id ? 
             db.getUser(chat.user2) : db.getUser(chat.user1);
         if (otherUser) {
             name = `${otherUser.firstname} ${otherUser.lastname}`;
+            avatarText = otherUser.firstname?.charAt(0) || '?';
+            meta = otherUser.bio || `@${otherUser.username}`;
             if (otherUser.avatar) {
-                avatar = `<div class="item-avatar" style="background-image: url('${otherUser.avatar}')"></div>`;
-            } else {
-                avatar = `<div class="item-avatar">${otherUser.firstname?.charAt(0) || '?'}</div>`;
+                avatarStyle = `background-image: url('${otherUser.avatar}')`;
+                avatarText = '';
             }
-            status = otherUser.verified ? '<span class="verified-badge">✓</span>' : '';
         }
+    } else if (chat.type === 'group') {
+        avatarText = '👥';
+        meta = `Группа • ${chat.members?.length || 0} участников`;
+    } else if (chat.type === 'channel') {
+        avatarText = '📢';
+        meta = `Канал • ${chat.subscribers?.length || 0} подписчиков`;
     }
     
     div.innerHTML = `
-        ${avatar}
+        <div class="item-avatar" style="${avatarStyle}">${avatarText}</div>
         <div class="item-info">
             <div class="item-name">
-                ${name} ${status}
+                ${name}
+                ${chat.verified ? '<span class="verified-badge"></span>' : ''}
+                ${chat.level ? `<span style="background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-left: 5px;">${chat.level}</span>` : ''}
             </div>
             <div class="item-meta">
-                <span>${chat.lastMessage || 'Нет сообщений'}</span>
+                <span>${meta}</span>
+                <span style="font-size: 12px; color: var(--text-secondary);">
+                    ${chat.lastMessageTime ? formatTimeAgo(chat.lastMessageTime) : ''}
+                </span>
             </div>
         </div>
     `;
@@ -350,24 +463,119 @@ function addContactToList(user) {
     div.className = 'list-item';
     div.onclick = () => openOrCreateContactChat(user.id);
     
-    const avatar = user.avatar ? 
-        `<div class="item-avatar" style="background-image: url('${user.avatar}')"></div>` :
-        `<div class="item-avatar">${user.firstname.charAt(0)}</div>`;
+    const avatarStyle = user.avatar ? `background-image: url('${user.avatar}')` : '';
+    const avatarText = user.avatar ? '' : user.firstname.charAt(0);
     
     div.innerHTML = `
-        ${avatar}
+        <div class="item-avatar" style="${avatarStyle}">${avatarText}</div>
         <div class="item-info">
             <div class="item-name">
                 ${user.firstname} ${user.lastname}
-                ${user.verified ? '<span class="verified-badge">✓</span>' : ''}
+                ${user.verified ? '<span class="verified-badge"></span>' : ''}
+                ${user.premium ? '<span style="color: var(--warning); margin-left: 5px;">👑</span>' : ''}
             </div>
             <div class="item-meta">
                 <span>@${user.username}</span>
+                <span style="font-size: 12px; color: var(--success);">
+                    онлайн
+                </span>
             </div>
         </div>
     `;
     
     list.appendChild(div);
+}
+
+// ============ СОЗДАНИЕ ЧАТОВ ============
+function toggleChatType() {
+    const type = document.getElementById('chat-type').value;
+    document.getElementById('contact-options').style.display = type === 'contact' ? 'block' : 'none';
+    document.getElementById('group-options').style.display = type === 'group' ? 'block' : 'none';
+    document.getElementById('channel-options').style.display = type === 'channel' ? 'block' : 'none';
+}
+
+function createChat() {
+    const type = document.getElementById('chat-type').value;
+    
+    if (type === 'contact') {
+        const username = document.getElementById('contact-username').value.replace('@', '');
+        const user = db.getUser(username);
+        
+        if (!user) {
+            showNotification('Пользователь не найден');
+            return;
+        }
+        
+        openOrCreateContactChat(username);
+        
+    } else if (type === 'group') {
+        const name = document.getElementById('group-name').value.trim();
+        const membersInput = document.getElementById('group-members').value;
+        
+        if (!name) {
+            showNotification('Введите название группы');
+            return;
+        }
+        
+        const members = membersInput.split(',').map(m => m.trim().replace('@', '')).filter(m => m);
+        const participants = [currentUser.id, ...members];
+        
+        const chatId = `group_${Date.now()}`;
+        const chat = {
+            id: chatId,
+            type: 'group',
+            name: name,
+            owner: currentUser.id,
+            members: participants,
+            everyoneCanWrite: true,
+            createdAt: new Date().toISOString(),
+            lastMessage: '',
+            lastMessageTime: new Date().toISOString()
+        };
+        
+        db.saveChat(chat);
+        openChat(chatId);
+        
+    } else if (type === 'channel') {
+        const name = document.getElementById('channel-name').value.trim();
+        const username = document.getElementById('channel-username').value.replace('@', '').trim();
+        
+        if (!name || !username) {
+            showNotification('Заполните обязательные поля');
+            return;
+        }
+        
+        // Проверяем уникальность
+        for (let chat of Object.values(db.chats)) {
+            if (chat.username === username) {
+                showNotification('Этот @username уже занят');
+                return;
+            }
+        }
+        
+        const chatId = `channel_${Date.now()}`;
+        const chat = {
+            id: chatId,
+            type: 'channel',
+            name: name,
+            username: username,
+            owner: currentUser.id,
+            subscribers: [currentUser.id],
+            level: 1,
+            votes: 0,
+            verified: false,
+            createdAt: new Date().toISOString(),
+            lastMessage: '',
+            lastMessageTime: new Date().toISOString()
+        };
+        
+        db.saveChat(chat);
+        openChat(chatId);
+    }
+    
+    closeWindow('create-chat-window');
+    showNotification('Чат создан!');
+    loadChats();
 }
 
 // ============ ОТКРЫТИЕ ЧАТА ============
@@ -391,7 +599,19 @@ function openChat(chatId) {
                 avatarElement.style.backgroundImage = '';
                 avatarElement.textContent = otherUser.firstname.charAt(0);
             }
+            document.getElementById('chat-status').textContent = 
+                `@${otherUser.username}`;
         }
+    } else if (chat.type === 'group') {
+        document.getElementById('chat-name').textContent = chat.name;
+        document.getElementById('chat-user-avatar').textContent = '👥';
+        document.getElementById('chat-status').textContent = 
+            `Группа • ${chat.members?.length || 0} участников`;
+    } else if (chat.type === 'channel') {
+        document.getElementById('chat-name').textContent = chat.name;
+        document.getElementById('chat-user-avatar').textContent = '📢';
+        document.getElementById('chat-status').textContent = 
+            `Канал • ${chat.subscribers?.length || 0} подписчиков`;
     }
     
     loadMessages();
@@ -424,6 +644,17 @@ function openOrCreateContactChat(userId) {
         };
         
         db.saveChat(chat);
+        
+        // Создаем приветственное сообщение
+        const welcomeMessage = {
+            id: Date.now(),
+            sender: currentUser.id,
+            text: `Привет! Я ${currentUser.firstname}. Начнем общение?`,
+            timestamp: new Date().toISOString(),
+            reactions: {}
+        };
+        
+        db.saveMessage(chatId, welcomeMessage);
     }
     
     openChat(chatId);
@@ -438,7 +669,7 @@ function loadMessages() {
         container.innerHTML = `
             <div style="text-align: center; padding: 50px; color: var(--text-secondary);">
                 <div class="user-avatar" style="width: 60px; height: 60px; margin: 0 auto 15px; font-size: 24px;">💬</div>
-                <h3>Выберите чат</h3>
+                <h3 style="margin-bottom: 10px;">Выберите чат</h3>
                 <p>Начните общение с друзьями</p>
             </div>
         `;
@@ -451,7 +682,7 @@ function loadMessages() {
         container.innerHTML = `
             <div style="text-align: center; padding: 50px; color: var(--text-secondary);">
                 <div class="user-avatar" style="width: 60px; height: 60px; margin: 0 auto 15px; font-size: 24px;">👋</div>
-                <h3>Начните диалог</h3>
+                <h3 style="margin-bottom: 10px;">Начните диалог</h3>
                 <p>Отправьте первое сообщение</p>
             </div>
         `;
@@ -469,7 +700,12 @@ function sendMessage() {
     const input = document.getElementById('message-input');
     const text = input.value.trim();
     
-    if (!text || !currentChatId) return;
+    if (!text && !selectedPhoto) return;
+    
+    if (!currentChatId) {
+        showNotification('Выберите чат');
+        return;
+    }
     
     // Проверяем команды
     if (text.startsWith('!стикер')) {
@@ -482,35 +718,23 @@ function sendMessage() {
         id: Date.now(),
         sender: currentUser.id,
         text: text,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        reactions: {}
     };
+    
+    if (selectedPhoto) {
+        message.image = selectedPhoto;
+    }
     
     db.saveMessage(currentChatId, message);
     addMessageToUI(message, true);
+    
+    // Сброс
     input.value = '';
-}
-
-function processStickerCommand(text) {
-    const parts = text.split(' ');
-    if (parts.length < 3) {
-        showNotification('Используйте: !стикер [ссылка] [название]');
-        return;
-    }
+    selectedPhoto = null;
     
-    const url = parts[1];
-    const name = parts.slice(2).join(' ');
-    
-    // Сохраняем стикер
-    const sticker = {
-        id: Date.now(),
-        url: url,
-        name: name,
-        createdBy: currentUser.id,
-        createdAt: new Date().toISOString()
-    };
-    
-    db.addSticker(currentUser.id, sticker);
-    showNotification(`Стикер "${name}" добавлен!`);
+    // Фокус на поле ввода
+    input.focus();
 }
 
 function addMessageToUI(msg, scroll = true) {
@@ -532,7 +756,7 @@ function addMessageToUI(msg, scroll = true) {
         ${!isOutgoing ? `
             <div class="message-sender">
                 ${sender ? sender.firstname : 'Неизвестный'}
-                ${sender?.verified ? '<span class="verified-badge">✓</span>' : ''}
+                ${sender?.verified ? '<span class="verified-badge"></span>' : ''}
             </div>
         ` : ''}
         ${content}
@@ -557,27 +781,15 @@ document.getElementById('file-input').addEventListener('change', function(e) {
     
     const reader = new FileReader();
     reader.onload = function(event) {
-        sendPhoto(event.target.result);
+        selectedPhoto = event.target.result;
+        showNotification('Фото загружено. Введите текст и отправьте сообщение.');
     };
     reader.readAsDataURL(file);
 });
 
-function sendPhoto(photoUrl) {
-    if (!currentChatId) return;
-    
-    const message = {
-        id: Date.now(),
-        sender: currentUser.id,
-        image: photoUrl,
-        timestamp: new Date().toISOString()
-    };
-    
-    db.saveMessage(currentChatId, message);
-    addMessageToUI(message, true);
-}
-
 function openImage(url) {
-    window.open(url, '_blank');
+    const win = window.open('', '_blank');
+    win.document.write(`<img src="${url}" style="max-width: 100%; height: auto;">`);
 }
 
 // ============ СТИКЕРЫ ============
@@ -598,8 +810,69 @@ function sendSticker(sticker) {
     };
     
     db.saveMessage(currentChatId, message);
-    addMessageToUI(message, true);
+    
+    const container = document.getElementById('messages-container');
+    const div = document.createElement('div');
+    div.className = 'message outgoing';
+    div.innerHTML = `
+        <div class="message-text" style="font-size: 48px; text-align: center;">${sticker}</div>
+        <div class="message-time">${formatTime(new Date())}</div>
+    `;
+    
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
     toggleStickerPicker();
+}
+
+// Бот для стикеров
+document.getElementById('bot-photo-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const photoUrl = event.target.result;
+        
+        // Создаем стикер из фото
+        const stickerName = prompt('Введите название для стикера:', 'Мой стикер');
+        if (stickerName) {
+            const sticker = {
+                id: Date.now(),
+                url: photoUrl,
+                name: stickerName,
+                createdBy: currentUser.id,
+                createdAt: new Date().toISOString()
+            };
+            
+            db.addSticker(currentUser.id, sticker);
+            showNotification(`Стикер "${stickerName}" создан!`);
+            closeWindow('bot-window');
+        }
+    };
+    reader.readAsDataURL(file);
+});
+
+function processStickerCommand(text) {
+    const parts = text.split(' ');
+    if (parts.length < 3) {
+        showNotification('Используйте: !стикер [ссылка] [название]');
+        return;
+    }
+    
+    const url = parts[1];
+    const name = parts.slice(2).join(' ');
+    
+    // Сохраняем стикер
+    const sticker = {
+        id: Date.now(),
+        url: url,
+        name: name,
+        createdBy: currentUser.id,
+        createdAt: new Date().toISOString()
+    };
+    
+    db.addSticker(currentUser.id, sticker);
+    showNotification(`Стикер "${name}" добавлен!`);
 }
 
 // ============ ПОДАРКИ ============
@@ -614,7 +887,7 @@ function loadGifts() {
         
         div.innerHTML = `
             <div class="gift-icon">${gift.emoji}</div>
-            <div>${gift.name}</div>
+            <div style="font-weight: 600;">${gift.name}</div>
             <div style="color: var(--warning); font-size: 12px; margin-top: 5px;">${gift.price} ⭐</div>
         `;
         
@@ -632,7 +905,7 @@ function selectGift(gift) {
 
 function sendGift() {
     if (!selectedGift || !currentChatId) {
-        showNotification('Выберите подарок');
+        showNotification('Выберите подарок и чат');
         return;
     }
     
@@ -641,10 +914,12 @@ function sendGift() {
         return;
     }
     
+    // Снимаем звёзды
     currentUser.stars -= selectedGift.price;
     db.saveUser(currentUser);
     updateUserUI();
     
+    // Отправляем сообщение с подарком
     const message = {
         id: Date.now(),
         sender: currentUser.id,
@@ -665,8 +940,29 @@ function formatTime(timestamp) {
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 }
 
+function formatTimeAgo(timestamp) {
+    const now = new Date();
+    const date = new Date(timestamp);
+    const diff = now - date;
+    
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'только что';
+    if (minutes < 60) return `${minutes} мин`;
+    if (hours < 24) return `${hours} ч`;
+    if (days < 7) return `${days} д`;
+    return date.toLocaleDateString();
+}
+
 function openWindow(id) {
     closeAllWindows();
+    
+    if (id === 'gift-window') {
+        loadGifts();
+    }
+    
     document.getElementById(id).style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
 }
@@ -693,14 +989,25 @@ function showNotification(text) {
     }, 3000);
 }
 
+function openFilePicker() {
+    document.getElementById('file-input').click();
+}
+
 // ============ ИНИЦИАЛИЗАЦИЯ ============
 document.addEventListener('DOMContentLoaded', function() {
     // Отправка сообщения по Enter
-    document.getElementById('message-input').addEventListener('keydown', function(e) {
+    const messageInput = document.getElementById('message-input');
+    messageInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             sendMessage();
         }
+    });
+    
+    // Авторазмер textarea
+    messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
     });
     
     // Глобальный поиск
@@ -717,7 +1024,8 @@ document.addEventListener('DOMContentLoaded', function() {
         Object.values(db.users).forEach(user => {
             if (user.id !== currentUser.id && 
                 (user.username.includes(term) || 
-                 user.firstname.toLowerCase().includes(term))) {
+                 user.firstname.toLowerCase().includes(term) || 
+                 user.lastname.toLowerCase().includes(term))) {
                 addContactToList(user);
             }
         });
