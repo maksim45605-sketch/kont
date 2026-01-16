@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Knot - Продвинутый Мессенджер</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔗</text></svg>">
 </head>
@@ -39,10 +38,6 @@
                         <label class="form-label">@username</label>
                         <input type="text" id="register-username" class="form-input" placeholder="@username" oninput="checkUsername()">
                         <div id="username-status" style="font-size: 12px; margin-top: 5px;"></div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Дата рождения</label>
-                        <input type="date" id="register-birthdate" class="form-input">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Фото профиля (URL)</label>
@@ -153,7 +148,7 @@
                         <button class="chat-btn" onclick="openWindow('gift-window')" title="Подарок">
                             <i class="fas fa-gift"></i>
                         </button>
-                        <button class="chat-btn" onclick="openWindow('sticker-bot-window')" title="Бот стикеров">
+                        <button class="chat-btn" onclick="openWindow('bot-window')" title="Бот">
                             <i class="fas fa-robot"></i>
                         </button>
                     </div>
@@ -191,6 +186,7 @@
     <!-- ВСПОМОГАТЕЛЬНЫЕ ОКНА -->
     <div class="overlay" id="overlay"></div>
     
+    <!-- ОКНО ПРОФИЛЯ -->
     <div class="window" id="profile-window">
         <div class="window-header">
             <h2>Мой профиль</h2>
@@ -222,6 +218,56 @@
         </div>
     </div>
     
+    <!-- ОКНО СОЗДАНИЯ ЧАТА -->
+    <div class="window" id="create-chat-window">
+        <div class="window-header">
+            <h2>Создать чат</h2>
+            <button class="close-window" onclick="closeWindow('create-chat-window')">✕</button>
+        </div>
+        <div class="window-content">
+            <div class="form-group">
+                <label class="form-label">Тип чата</label>
+                <select id="chat-type" class="form-input" onchange="toggleChatType()">
+                    <option value="contact">Личный чат</option>
+                    <option value="group">Группа</option>
+                    <option value="channel">Канал</option>
+                </select>
+            </div>
+            
+            <div id="contact-options">
+                <div class="form-group">
+                    <label class="form-label">@username пользователя</label>
+                    <input type="text" id="contact-username" class="form-input" placeholder="@username">
+                </div>
+            </div>
+            
+            <div id="group-options" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Название группы</label>
+                    <input type="text" id="group-name" class="form-input" placeholder="Введите название">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Участники (через запятую)</label>
+                    <input type="text" id="group-members" class="form-input" placeholder="@user1, @user2">
+                </div>
+            </div>
+            
+            <div id="channel-options" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Название канала</label>
+                    <input type="text" id="channel-name" class="form-input" placeholder="Введите название">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">@username канала</label>
+                    <input type="text" id="channel-username" class="form-input" placeholder="@channelname">
+                </div>
+            </div>
+            
+            <button class="login-btn" style="width: 100%;" onclick="createChat()">Создать</button>
+        </div>
+    </div>
+    
+    <!-- ОКНО ПОДАРКОВ -->
     <div class="window" id="gift-window">
         <div class="window-header">
             <h2>Отправить подарок</h2>
@@ -233,23 +279,35 @@
         </div>
     </div>
     
-    <div class="window" id="sticker-bot-window">
+    <!-- ОКНО БОТА -->
+    <div class="window" id="bot-window">
         <div class="window-header">
             <h2>🤖 Бот стикеров</h2>
-            <button class="close-window" onclick="closeWindow('sticker-bot-window')">✕</button>
+            <button class="close-window" onclick="closeWindow('bot-window')">✕</button>
         </div>
         <div class="window-content">
             <div class="bot-info">
                 <p>Отправьте команду: <code>!стикер [ссылка на фото] [название]</code></p>
                 <p>Пример: <code>!стикер https://example.com/cat.jpg Котик</code></p>
+                <p style="margin-top: 20px;">Или загрузите фото для создания стикеров:</p>
             </div>
+            <div style="border: 2px dashed var(--bg-tertiary); border-radius: 15px; padding: 30px; text-align: center; cursor: pointer; margin: 20px 0;"
+                 onclick="document.getElementById('bot-photo-input').click()">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 40px; color: var(--text-secondary); margin-bottom: 10px;"></i>
+                <p style="color: var(--text-secondary);">Нажмите для загрузки фото</p>
+            </div>
+            <input type="file" id="bot-photo-input" accept="image/*" style="display: none;">
         </div>
     </div>
     
-    <!-- СКРЫТЫЕ ЭЛЕМЕНТЫ -->
+    <!-- УВЕДОМЛЕНИЯ -->
+    <div class="notification" id="notification"></div>
+    
+    <!-- СКРЫТЫЕ INPUT ДЛЯ ФАЙЛОВ -->
     <input type="file" id="file-input" style="display: none;" accept="image/*">
     <input type="file" id="avatar-input" style="display: none;" accept="image/*">
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
