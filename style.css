@@ -318,16 +318,13 @@ body {
 }
 
 .verified-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    background: var(--verified);
-    border-radius: 50%;
-    color: white;
-    font-size: 10px;
-    font-weight: bold;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-image: url('https://i.ibb.co/fzhW2cPK/icons8-instagram-check-mark-48.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    vertical-align: middle;
     margin-left: 5px;
 }
 
